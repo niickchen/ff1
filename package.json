@@ -1,0 +1,17 @@
+{
+  "name": "ff1",
+  "version": "1.0.0",
+  "description": "Package ff1 implements the FF1 format-preserving encryption, translated from Go (https://github.com/capitalone/fpe/blob/master/ff1/ff1.go).",
+  "main": "ff1.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ff1"
+  ],
+  "author": "Nick",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-preset-env": "^1.7.0"
+  }
+}
