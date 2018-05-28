@@ -47,6 +47,20 @@ function toUint8 (n) {
 	return n & 0xFF;
 }
 
+function setBytes(buf, start, end) {
+	let ret = BigNumber(0);
+	for (let i = start; i < end; i++) {
+		ret <<= 8;
+		try {
+			ret = ret.plus(BigNumber(buf[i]));
+		}
+		catch(e) {
+			throw e;
+		}
+	}
+	return ret;
+}
+
 // copy() will copy elements in place from the src into the dst slice (start, end)
 function copy(dst, start, end, src) {
     let index = start;
@@ -178,7 +192,7 @@ class Cipher {
 		try {
 			numX = BigNumber(X, radix);
 		}
-		catch (error) {
+		catch(e) {
 			throw ErrStringNotInRadix;
 		}
 	
@@ -270,8 +284,8 @@ class Cipher {
 		try {
 			numRadix = BigNumber(radix);
 		}
-		catch (error) {
-			throw error;
+		catch(e) {
+			throw e;
 		}
 
 		// Y starts at the start of last block of PQ, requires lenY bytes
@@ -291,8 +305,8 @@ class Cipher {
 			numU = BigNumber(u);
 			numV = BigNumber(v);
 		}
-		catch (error) {
-			throw error;
+		catch(e) {
+			throw e;
 		}
 
 		// PS: in Go big.Exp returns 1 if power is less than 0 while this JS BigNumber library rounds it
@@ -303,8 +317,8 @@ class Cipher {
 			try {
 				numModU = numRadix.pow(numU);
 			}
-			catch (error) {
-				throw error;
+			catch(e) {
+				throw e;
 			}
 		}
 
@@ -314,8 +328,8 @@ class Cipher {
 			try {
 				numModV = numRadix.pow(numV);
 			}
-			catch (error) {
-				throw error;
+			catch(e) {
+				throw e;
 			}
 		}
 		
@@ -324,14 +338,14 @@ class Cipher {
 		try {
 			numA = BigNumber(A, radix);
 		}
-		catch (error) {
+		catch(e) {
 			throw ErrStringNotInRadix;
 		}
 
 		try {
 			numB = BigNumber(B, radix);
 		}
-		catch (error) {
+		catch(e) {
 			throw ErrStringNotInRadix;
 		}
 	
@@ -367,8 +381,8 @@ class Cipher {
 			try {
 				R = this.prf(PQ);
 			}
-			catch (error) {
-				throw error;
+			catch(e) {
+				throw e;
 			}
 
 			// Step 6iii
@@ -394,39 +408,38 @@ class Cipher {
 				try {
 					this.ciph(xored.slice(offset, offset + blockSize));
 				}
-				catch (error) {
-					throw error;
+				catch(e) {
+					throw e;
 				}
 			}
-			// TODO: translate. SetBytes interprets buf as the bytes of a big-endian unsigned integer, sets z to that value, and returns z.
-			numY.SetBytes(Y.slice(0, d));
 			
-			numC = numA.add(numY);
-
-			if (i % 2 == 0) {
-				numC = numC.mod(numModU);
-			} else {
-				numC = numC.mod(numModV);
+			try {
+				numY = setBytes(Y, 0, d);
+				numC = numA.plus(numY);
+				if (i % 2 == 0) {
+					numC = numC.mod(numModU);
+				} else {
+					numC = numC.mod(numModV);
+				}
+				// big.Ints use pointers behind the scenes so when numB gets updated,
+				// numA will transparently get updated to it. Hence, set the bytes explicitly
+				// TODO: check this "numA will transparently get updated to it" thing in JS
+				numA = setBytes(numBBytes, 0, numBBytes.length);
+				numB = numC;
 			}
-	
-			// big.Ints use pointers behind the scenes so when numB gets updated,
-			// numA will transparently get updated to it. Hence, set the bytes explicitly
-			// TODO: check this "numA will transparently get updated to it" thing in JS
-			
-			// TODO: SetBytes interprets buf as the bytes of a big-endian unsigned integer, sets z to that value, and returns z.
-			numA.SetBytes(numBBytes);
-			numB = numC;
+			catch(e) {
+				throw e;
+			}
 		}
 
 		A = numA.toString(radix);
 		B = numB.toString(radix);
-	
+
 		// Pad both A and B properly
 		A = '0'.repeat(u - A.length) + A;
 		B = '0'.repeat(v - B.length) + B;
-	
+		
 		ret = A + B;
-	
 		return ret;
 	  }	  
 
@@ -468,7 +481,7 @@ class Cipher {
 		try {
 			numX = BigNumber(X, radix);
 		}
-		catch (error) {
+		catch(e) {
 			throw ErrStringNotInRadix;
 		}
 	
@@ -549,8 +562,8 @@ class Cipher {
 		try {
 			numRadix = BigNumber(radix);
 		}
-		catch (error) {
-			throw error;
+		catch(e) {
+			throw e;
 		}
 
 		// Y starts at the start of last block of PQ, requires lenY bytes
@@ -570,8 +583,8 @@ class Cipher {
 			numU = BigNumber(u);
 			numV = BigNumber(v);
 		}
-		catch (error) {
-			throw error;
+		catch(e) {
+			throw e;
 		}
 		
 		// PS: in Go big.Exp returns 1 if power is less than 0 while this BigNumber rounds the result
@@ -582,8 +595,8 @@ class Cipher {
 			try {
 				numModU = numRadix.pow(numU);
 			}
-			catch (error) {
-				throw error;
+			catch(e) {
+				throw e;
 			}
 		}
 
@@ -593,8 +606,8 @@ class Cipher {
 			try {
 				numModV = numRadix.pow(numV);
 			}
-			catch (error) {
-				throw error;
+			catch(e) {
+				throw e;
 			}
 		}
 		
@@ -603,14 +616,14 @@ class Cipher {
 		try {
 			numA = BigNumber(A, radix);
 		}
-		catch (error) {
+		catch(e) {
 			throw ErrStringNotInRadix;
 		}
 
 		try {
 			numB = BigNumber(B, radix);
 		}
-		catch (error) {
+		catch(e) {
 			throw ErrStringNotInRadix;
 		}
 	
@@ -644,8 +657,8 @@ class Cipher {
 			try {
 				R = this.prf(PQ);
 			} 
-			catch (error) {
-				throw error;
+			catch(e) {
+				throw e;
 			}
 	
 			// Step 6iii
@@ -671,30 +684,33 @@ class Cipher {
 				try {
 					this.ciph(xored.slice(offset, offset + blockSize));
 				}
-				catch (error) {
-					throw error;
+				catch(e) {
+					throw e;
 				}
 			}
 
-			// TODO: change setBytes
-			numY.SetBytes(Y.slice(0, d));
 
-			numC = numB.minus(numY);
-	
-			if (i % 2 == 0) {
-				numC = numC.mod(numModU);
-			} else {
-				numC = numC.mod(numModV);
+			try {
+				numY = setBytes(Y, 0, d);
+				numC = numB.minus(numY);
+				if (i % 2 == 0) {
+					numC = numC.mod(numModU);
+				} else {
+					numC = numC.mod(numModV);
+				}
+
+				// big.Ints use pointers behind the scenes so when numB gets updated,
+				// numA will transparently get updated to it. Hence, set the bytes explicitly
+				// TODO: check this "numA will transparently get updated to it" thing in JS
+				
+				// TODO: SetBytes interprets buf as the bytes of a big-endian unsigned integer, sets z to that value, and returns z.
+				// TODO: change this 'SetBytes' to JS
+				numB.setBytes(numABytes, 0, numABytes.length);
+				numA = numC;
 			}
-	
-			// big.Ints use pointers behind the scenes so when numB gets updated,
-			// numA will transparently get updated to it. Hence, set the bytes explicitly
-			// TODO: check this "numA will transparently get updated to it" thing in JS
-			
-			// TODO: SetBytes interprets buf as the bytes of a big-endian unsigned integer, sets z to that value, and returns z.
-			// TODO: change this 'SetBytes' to JS
-			numB.SetBytes(numABytes);
-			numA = numC;
+			catch(e) {
+				throw e;
+			}
 		}
 
 		A = numA.toString(radix);
@@ -735,8 +751,8 @@ class Cipher {
 			const cipher = this.ciph(input);
 			return cipher.slice(cipher.length - blockSize, cipher.length);
 		}
-		catch (error) {
-			throw error;
+		catch(e) {
+			throw e;
 		}
 	}
 }
