@@ -20,7 +20,7 @@ const ErrStringNotInRadix = Error('string is not within base/radix');
 const ErrTweakLengthInvalid = Error('tweak must be between 0 and given maxTLen, inclusive');
 
 // Need this for the SetIV function which CBCEncryptor has, but cipher.BlockMode interface doesn't.
-// TODO: translate to javascript
+// TODO: (TRANSLATE) to javascript
 interface cbcMode {
     cipher.BlockMode
     SetIV: Uint8Array[],
@@ -57,6 +57,17 @@ function setBytes(buf, start, end) {
 		catch(e) {
 			throw e;
 		}
+	}
+	return ret;
+}
+
+// returns the absolute value of BigNumber x as a big-endian byte slice.
+function toBytesArray(x) {
+	let ax = x.abs();
+	let ret = [];
+	while(ax > 0) {
+		ret.unshift(ax&0xff);
+		ax >>>= 8;
 	}
 	return ret;
 }
@@ -112,7 +123,7 @@ module.exports = {
 			throw new Error('minLen invalid, adjust your radix');
 		}
 
-		// TODO: Check with original go code below
+		// TODO: (CHECK) with original go code below
 		// Now aesBlock uses cbc only, but there is a chance (?) of using ecb as said in comments in ciph() method.
 		// GO: aesBlock, err := aes.NewCipher(key)
 		// if err != nil {
@@ -135,7 +146,7 @@ module.exports = {
 				default:
 					throw new Error('key length must be 128, 192, or 256 bits');
 			}
-			const cbcEncryptor = aesBlock; // TODO: ?
+			const cbcEncryptor = aesBlock; // TODO: (CHECK)?
 			return new Cipher(tweak, radix, minLen, maxLen, maxTLen, cbcEncryptor);
 		} catch (e) {
 			throw new Error('failed to create AES block');
@@ -280,7 +291,7 @@ class Cipher {
 		// variables names prefixed with "num" indicate big integers
 		let numA, numB, numC, numRadix, numY, numU, numV, numModU, numModV = BigNumber(0);
 		let numBBytes = new Uint8Array();
-		// TODO: make sure numRadix.SetInt64(int64(radix))
+		// TODO: (CHECK) make sure numRadix.SetInt64(int64(radix))
 		try {
 			numRadix = BigNumber(radix);
 		}
@@ -304,45 +315,24 @@ class Cipher {
 		try {
 			numU = BigNumber(u);
 			numV = BigNumber(v);
-		}
-		catch(e) {
-			throw e;
-		}
 
-		// PS: in Go big.Exp returns 1 if power is less than 0 while this JS BigNumber library rounds it
-		// thus this if statement below is added.
-		if (numU.isLessThan(0)) {
-			numModU = BigNumber(1);
-		} else {
-			try {
+			// PS: in Go big.Exp returns 1 if power is less than 0 while this JS BigNumber library rounds it
+			// thus this if statement below is added.
+			if (numU.isLessThan(0)) {
+				numModU = BigNumber(1);
+			} else {
 				numModU = numRadix.pow(numU);
 			}
-			catch(e) {
-				throw e;
-			}
-		}
 
-		if (numU.isLessThan(0)) {
-			numModV = BigNumber(1);
-		} else {
-			try {
+			if (numU.isLessThan(0)) {
+				numModV = BigNumber(1);
+			} else {
 				numModV = numRadix.pow(numV);
 			}
-			catch(e) {
-				throw e;
-			}
-		}
-		
-		// Bootstrap for 1st round
-	
-		try {
-			numA = BigNumber(A, radix);
-		}
-		catch(e) {
-			throw ErrStringNotInRadix;
-		}
 
-		try {
+			// Bootstrap for 1st round
+
+			numA = BigNumber(A, radix);
 			numB = BigNumber(B, radix);
 		}
 		catch(e) {
@@ -353,12 +343,11 @@ class Cipher {
 	
 		for (let i = 0; i < numRounds; i++) {
 			// Calculate the dynamic parts of Q
-			// TODO: check with Zhi below
+			// TODO: (CHECK) with Zhi below
 			// original GO: Q[t+numPad] = byte(i)
 			Q[t+numPad] = toUint8(i);
 	
-			// TODO: translate to js. Bytes returns the absolute value of x as a big-endian byte slice.
-			numBBytes = numB.Bytes();
+			numBBytes = toBytesArray(numB)
 	
 			// Zero out the rest of Q
 			// When the second half of X is all 0s, numB is 0, so numBytes is an empty slice
@@ -395,7 +384,7 @@ class Cipher {
 				for (let x = 0; x < halfBlockSize; x++) {
 					xored[offset + x] = 0x00;
 				}
-				// TODO: translate below
+				// TODO: (TRANSLATE) below
 				binary.BigEndian.PutUint64(xored[offset+halfBlockSize:offset+blockSize], uint64(j));
 	
 				// XOR R and j in place
@@ -423,7 +412,7 @@ class Cipher {
 				}
 				// big.Ints use pointers behind the scenes so when numB gets updated,
 				// numA will transparently get updated to it. Hence, set the bytes explicitly
-				// TODO: check this "numA will transparently get updated to it" thing in JS
+				// TODO: (CHECK) this "numA will transparently get updated to it" thing in JS?
 				numA = setBytes(numBBytes, 0, numBBytes.length);
 				numB = numC;
 			}
@@ -557,7 +546,7 @@ class Cipher {
 		// variables names prefixed with "num" indicate big integers
 		let numA, numB, numC, numRadix, numY, numU, numV, numModU, numModV = BigNumber(0);
 		let numABytes = new Uint8Array();
-		// TODO: check if BigNumber set it right. All these 'nums' are set to int64.
+		// TODO: (CHECK) if BigNumber set it right. All these 'nums' are set to int64.
 		// original GO: numRadix.SetInt64(int64(radix))
 		try {
 			numRadix = BigNumber(radix);
@@ -582,45 +571,23 @@ class Cipher {
 		try {
 			numU = BigNumber(u);
 			numV = BigNumber(v);
-		}
-		catch(e) {
-			throw e;
-		}
-		
-		// PS: in Go big.Exp returns 1 if power is less than 0 while this BigNumber rounds the result
-		// thus this if statement below is added.
-		if (numU.isLessThan(0)) {
-			numModU = BigNumber(1);
-		} else {
-			try {
+
+			// PS: in Go big.Exp returns 1 if power is less than 0 while this BigNumber rounds the result
+			// thus this if statement below is added.
+			if (numU.isLessThan(0)) {
+				numModU = BigNumber(1);
+			} else {
 				numModU = numRadix.pow(numU);
 			}
-			catch(e) {
-				throw e;
-			}
-		}
 
-		if (numU.isLessThan(0)) {
-			numModV = BigNumber(1);
-		} else {
-			try {
+			if (numU.isLessThan(0)) {
+				numModV = BigNumber(1);
+			} else {
 				numModV = numRadix.pow(numV);
 			}
-			catch(e) {
-				throw e;
-			}
-		}
-		
-		// Bootstrap for 1st round
-	
-		try {
-			numA = BigNumber(A, radix);
-		}
-		catch(e) {
-			throw ErrStringNotInRadix;
-		}
 
-		try {
+			// Bootstrap for 1st round
+			numA = BigNumber(A, radix);
 			numB = BigNumber(B, radix);
 		}
 		catch(e) {
@@ -633,8 +600,8 @@ class Cipher {
 			// Calculate the dynamic parts of Q
 			Q[t+numPad] = toUint8(i);
 	
-			// TODO: change Bytes
-			numABytes = numA.Bytes();
+			numABytes = toBytesArray(numA);
+			
 	
 			// Zero out the rest of Q
 			// When the second half of X is all 0s, numB is 0, so numBytes is an empty slice
@@ -671,7 +638,7 @@ class Cipher {
 				for (let x = 0; x < halfBlockSize; x++) {
 					xored[offset + x] = 0x00;
 				}
-				// TODO: change to JS
+				// TODO: (TRANSLATE) to JS
 				binary.BigEndian.PutUint64(xored[offset+halfBlockSize:offset+blockSize], uint64(j));
 	
 				// XOR R and j in place
@@ -701,11 +668,8 @@ class Cipher {
 
 				// big.Ints use pointers behind the scenes so when numB gets updated,
 				// numA will transparently get updated to it. Hence, set the bytes explicitly
-				// TODO: check this "numA will transparently get updated to it" thing in JS
-				
-				// TODO: SetBytes interprets buf as the bytes of a big-endian unsigned integer, sets z to that value, and returns z.
-				// TODO: change this 'SetBytes' to JS
-				numB.setBytes(numABytes, 0, numABytes.length);
+				// TODO: (CHECK) this "numA will transparently get updated to it" thing in JS
+				numB = setBytes(numABytes, 0, numABytes.length);
 				numA = numC;
 			}
 			catch(e) {
@@ -734,10 +698,10 @@ class Cipher {
 		if (input.length % blockSize !== 0) {
 			throw new Error('length of ciph input must be multiple of 16');
 		}
-		// TODO: change code below
+		// TODO: (TRANSLATE) code below
 		this.cbcEncryptor.CryptBlocks(input, input);
 		// Reset IV to 0
-		// TODO: change code below
+		// TODO: (TRANSLATE) code below
 		this.cbcEncryptor.(cbcMode).SetIV(ivZero);
 	
 		return input;
