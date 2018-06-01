@@ -573,7 +573,7 @@ module.exports = class FF1Cipher {
     
         // These are re-used in the for loop below
         // variables names prefixed with "num" indicate big integers
-        let numA, numB, numC, numRadix, numY, numU, numV, numModU, numModV = BigNumber(0);
+        let numA, numB, numC, numY, numU, numV, numModU, numModV = BigNumber(0);
         let numABytes = new Uint8Array();
         // TODO: (CHECK) if BigNumber set it right. All these 'nums' are set to int64.
         // original GO: numRadix.SetInt64(int64(radix))
